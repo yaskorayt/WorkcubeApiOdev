@@ -1,0 +1,76 @@
+<cfsetting showdebugoutput="yes">
+
+<cfif not isdefined("fuseaction")>
+    <cfset fuseaction = "myhome.welcome">
+</cfif>
+<cf_xml_page_edit fuseact="myhome.welcome">
+
+<cfif isdefined("is_one_day") and is_one_day eq 1>
+    <cfset attributes.date_interval = 1>
+<cfelse>
+    <cfset attributes.date_interval = 8>
+</cfif>
+<cfset attributes.apply_date = now()>
+
+<cfif isdefined("session.ep.menu_id") and session.ep.menu_id gt 0>
+    <cfquery name="GET_MY_FILE" datasource="#DSN#">
+        SELECT MYHOME_FILE FROM MAIN_MENU_SETTINGS WHERE MENU_ID = <cfqueryparam value="#session.ep.menu_id#" cfsqltype="cf_sql_integer">
+    </cfquery>
+    <cfif len(get_my_file.myhome_file)>
+        <cfinclude template="#file_web_path#templates/#get_my_file.myhome_file#">
+    <cfelse>
+        <cfinclude template="myhome_ic.cfm">
+    </cfif>
+<cfelse>
+    <cfinclude template="myhome_ic.cfm">
+</cfif>
+
+<cfif not isdefined("fuseaction")>
+    <cfset fuseaction = "myhome.welcome">
+</cfif>
+
+
+<!-- SYMBOL Değerlerini Çekme -->
+<cfquery name="getSymbols" datasource="#DSN#">
+    SELECT COIN_ID, SYMBOL, PRICE
+    FROM workcube_dv.EXCHANGE_RATE
+</cfquery>
+
+<h1>Kripto Para İşlemleri</h1>
+
+<!-- Kullanıcıdan Veri Alma Formu -->
+<form action="index.cfm" method="post">
+    <label for="amount">Miktar:</label>
+    <input type="text" id="amount" name="amount" required>
+    
+    <label for="symbol">Sembol:</label>
+    <select id="symbol" name="symbol">
+        <cfoutput query="getSymbols">
+            <option value="#SYMBOL#">#SYMBOL#</option>
+        </cfoutput>
+    </select>
+    
+    <button type="submit" name="action" value="calculate">Hesapla</button>
+</form>
+
+<cfif structKeyExists(form, "action") AND form.action EQ "calculate">
+    <cfquery name="getRate" datasource="#DSN#">
+        SELECT PRICE 
+        FROM workcube_dv.EXCHANGE_RATE 
+        WHERE SYMBOL = <cfqueryparam value="#form.symbol#" cfsqltype="cf_sql_varchar">
+    </cfquery>
+
+    <cfset amount = inputBaseN(form.amount, 10)>
+    <cfset rate = inputBaseN(getRate.PRICE, 10)>
+    <cfset totalValue = amount * rate>
+
+    <h2>Hesaplama Sonucu</h2>
+    <p>Miktar: #form.amount#</p>
+    <p>Sembol: #form.symbol#</p>
+    <p>Dönüştürülmüş Değer: #totalValue#</p>
+</cfif>
+
+
+
+
+<cfsetting showdebugoutput="NO">
